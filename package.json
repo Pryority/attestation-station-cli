@@ -1,0 +1,22 @@
+{
+  "name": "attestation-station-cli",
+  "author": "Matthew Pryor <matthewapryor@gmail.com>",
+  "version": "1.0.0",
+  "main": "bin/index.js",
+  "private": true,
+  "license": "MIT",
+  "bin": {
+    "opas": "./bin/index.js"
+  },
+  "keywords": [
+    "Ethereum",
+    "Optimism",
+    "attestation",
+    "CLI"
+  ],
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "ethers": "^6.0.8",
+    "yargs": "^17.7.1"
+  }
+}
