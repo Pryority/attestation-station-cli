@@ -1,4 +1,4 @@
-const { ethers, AlchemyProvider, Wallet, Contract, AbiCoder, keccak256, SigningKey, getBytes, toUtf8Bytes, toBeHex, hexlify } = require('ethers');
+const { ethers, AlchemyProvider, Wallet, Contract, AbiCoder, keccak256, SigningKey, getBytes, toUtf8Bytes, toBeHex, hexlify, isHexString } = require('ethers');
 const prompts = require('prompts');
 const abi = require('./attestation-station-abi.json');
 
@@ -34,7 +34,7 @@ class AttestationStation {
   async getSigner() {
     const privateKey = await this.getInput("Enter your private key: ", "text");
     console.log('PRIVATE KEY AS BUFFER', privateKey);
-    const signer = new Wallet(privateKey, this.provider);
+    const signer = new Wallet(hexlify(privateKey), this.provider);
     console.log('SIGNER ADDRESS', signer.address);
     return signer;
   }
@@ -45,16 +45,21 @@ class AttestationStation {
       message: prompt
     });
     
-    const inputString = input.value;
+    const inputString = `0x${input.value}`;
     
     if (!inputString) {
       console.error("Must provide a PRIVATE KEY to sign and write the attestation.");
       process.exit(1);
     }
+
+    if (!isHexString(inputString)) {
+      console.error("Invalid private key format. Must be a hexadecimal string.");
+      process.exit(1);
+    }
     
-    console.log('\nPRIVATE KEY INPUT VALUE',inputString,'\n')
+    console.log('\nPRIVATE KEY INPUT VALUE',inputString.slice(2),'\n')
     
-    const privateKeyBytes = Buffer.from(inputString, 'hex');
+    const privateKeyBytes = Buffer.from(inputString.slice(2), 'hex');
     return privateKeyBytes;
   }
   
