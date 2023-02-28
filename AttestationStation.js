@@ -1,13 +1,14 @@
-const { ethers } = require('ethers');
+const { ethers, AlchemyProvider, Wallet, Contract, AbiCoder, keccak256, SigningKey } = require('ethers');
 const prompts = require('prompts');
-const abi = './attestation-station-abi.json'
+const abi = require('./attestation-station-abi.json');
 
 class AttestationStation {
   constructor(providerUrl, contractAddress) {
     this.providerUrl = providerUrl;
     this.contractAddress = contractAddress;
-    this.provider = new ethers.providers.JsonRpcProvider('http://localhost:8546','optimism-goerli');
-    this.contract = new ethers.Contract(contractAddress, abi, this.provider);
+    // this.provider = new ethers.providers.JsonRpcProvider('http://localhost:8546','optimism-goerli');
+    this.provider = new AlchemyProvider('optimism-goerli', 'SBWx0Z_XHGldPWGUkjSB4Cm0-Vh0N4y_');
+    this.contract = new Contract(contractAddress, abi, this.provider);
   }
   
   /**
@@ -20,29 +21,50 @@ class AttestationStation {
   }
  */
   
-  async attest(attestations) {
-    const signer = await this.getSigner();
-    const signedAttestations = await Promise.all(attestations.map(async attestation => {
-      const { about, key, val } = attestation;
-      const nonce = await this.getNonce(signer.address);
-      const encodedKey = encodeRawKey(key);
-      const attestationHash = ethers.utils.keccak256(
-        ethers.utils.defaultAbiCoder.encode(
-          ["address", "bytes32", "bool", "uint256"],
-          [about, encodedKey, val === 1, nonce]
-        )
-      );
-      const signature = await signer.signMessage(ethers.utils.arrayify(attestationHash));
-      return { about, key, val, nonce, signature };
-    }));
-    const tx = await this.contract.attest(signedAttestations);
-    const rcpt = await tx.wait();
-    return rcpt;
-  }
+  // async attest(attestations) {
+  //   const signer = await this.getSigner();
+  //   const signedAttestations = await Promise.all(attestations.map(async attestation => {
+  //     const { about, key, val } = attestation;
+  //     // const nonce = await this.getNonce(signer.address);
+  //     const encodedKey = encodeRawKey(key);
+  //     const attestationHash = ethers.utils.keccak256(
+  //       ethers.utils.defaultAbiCoder.encode(
+  //         ["address", "bytes32", "bool"],
+  //         [about, encodedKey, val === 1]
+  //       )
+  //     );
+  //     const signature = await signer.signMessage(ethers.utils.arrayify(attestationHash));
+  //     console.log('\nSIGNATURE\n',signature, '\n--------------\n')
+  //     return { about, key, val, signature };
+  //   }));
+  //   const tx = await this.contract.attest(signedAttestations);
+  //   const rcpt = await tx.wait();
+  //   return rcpt;
+  // }
   
+  async attest(address, data, signature, signer) {
+    const hash = this.getAttestationHash(address, data);
+    const recoveredAddress = this.recoverAddressFromSignature(hash, signature);
+    if (address.toLowerCase() !== recoveredAddress.toLowerCase()) {
+      throw new Error('Invalid signature');
+    }
+    const tx = await this.contract.attest(address, data, signer, signature);
+    const receipt = await tx.wait();
+    return receipt;
+  }
+
+  async recoverAddressFromSignature(message, signature) {
+    // const msgHash = toBeArray(message);
+    const sigParams = ethers.Signature.from(signature);
+    const recoveryId = sigParams.recoveryParam ? sigParams.recoveryParam : 0;
+    const publicKey = SigningKey.recoverPublicKey(message, { r: sigParams.r, s: sigParams.s }, recoveryId);
+    const recoveredAddress = await computeAddress(publicKey);
+    return recoveredAddress;
+  }
+
   async getSigner() {
     const privateKey = await this.getInput("Enter your private key: ", "text");
-    return new ethers.Wallet(privateKey, this.provider);
+    return new Wallet(privateKey, this.provider);
   }
   
   async getInput(prompt, inputType = "number") {
@@ -54,25 +76,25 @@ class AttestationStation {
     return input.value;
   }
   
-  async getNonce(address) {
-    return await this.contract.getNonce(address);
-  }
+  // async getNonce(address) {
+  //   return await this.contract.getNonce(address);
+  // }
   
+  async getAttestationHash(address, data) {
+    const abiCoder = new AbiCoder();
+    const encodedData = abiCoder.encode(
+      ["address", "bytes32"],
+      [address, keccak256(data)]
+    );
+    return keccak256(encodedData);
+  }
+
   async getAttestations(creator, subject, keys) {
     const attestations = await Promise.all(keys.map(async (key) => {
       const attestation = await this.contract.attestations(creator, subject, key);
       return [creator, subject, key, attestation];
     }));
     return attestations.filter((attestation) => attestation[3].length > 0);
-  }
-}
-
-function encodeRawKey(rawKey) {
-  if (rawKey.length < 32) {
-    return ethers.utils.formatBytes32String(rawKey);
-  } else {
-    const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(rawKey));
-    return hash.slice(0,64)+'ff';
   }
 }
 
