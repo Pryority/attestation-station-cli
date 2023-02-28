@@ -15,17 +15,19 @@ let attestation = {};
 
 console.log("Welcome to the attestation CLI!");
 
-rl.question("Enter '1' to create a new attestation, or '2' to read an existing one: ", function(choice) {
-  if (choice === '1') {
-    rl.question("Enter the address you are attesting about: ", function(addr) {
-      attestation.about = addr;
+rl.question("Enter '1' to create a new attestation, or '2' to read an existing one (default: 1): ", function(choice) {
+  choice = choice || '1'; // Set default value of '1' if user just hits enter
 
-      rl.question("Enter the key of the attestation: ", function(rawKey) {
-        const key = encodeRawKey(rawKey);
+  if (choice === '1') {
+    rl.question("Enter the address you are attesting about (default: 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045): ", function(addr) {
+      attestation.about = addr || '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'; // Set default value if user just hits enter
+
+      rl.question("Enter the key of the attestation (default: is.a.cat:bool): ", function(rawKey) {
+        const key = encodeRawKey(rawKey || 'is.a.cat:bool'); // Set default value if user just hits enter
         attestation.key = key;
 
-        rl.question("Enter the value of the attestation (1 for true, 0 for false): ", async function(val) {
-          attestation.val = toBeHex(val);
+        rl.question("Enter the value of the attestation (1 for true, 0 for false, default: 1): ", async function(val) {
+          attestation.val = toBeHex(val || '1'); // Set default value if user just hits enter
 
           console.log("New attestation created:", attestation);
           const attestationStation = new AttestationStation('https://opt-goerli.g.alchemy.com/v2/SBWx0Z_XHGldPWGUkjSB4Cm0-Vh0N4y_', contractAddress);
@@ -39,12 +41,18 @@ rl.question("Enter '1' to create a new attestation, or '2' to read an existing o
           )
           const signer = attestationStation.getSigner();
           const sig = await (await signer).signMessage(toBeArray(msgHash));
-          const res = { 
+          const data = { 
             about: attestation.about, 
             key: attestation.key, 
             val: attestation.val 
           };
-          const data = getBytes(res)
+          // const a = { 
+          //   about: attestation.about, 
+          //   key: attestation.key, 
+          //   val: attestation.val 
+          // };
+          // const abiCoder = new AbiCoder();
+          // const data = abiCoder.encode(['string'], [JSON.stringify(a)]);
           const receipt = await attestationStation.attest(attestation.about, data, sig, signer);
           console.log(receipt)
           process.exit(0);
@@ -68,8 +76,8 @@ rl.question("Enter '1' to create a new attestation, or '2' to read an existing o
       });
     });
   } else {
-    console.log("Invalid choice. Please enter either '1' or '2'");
-    process.exit(1);
+    console.log("Invalid choice.");
+    rl.close();
   }
 });
 

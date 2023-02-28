@@ -1,4 +1,4 @@
-const { ethers, AlchemyProvider, Wallet, Contract, AbiCoder, keccak256, SigningKey } = require('ethers');
+const { ethers, AlchemyProvider, Wallet, Contract, AbiCoder, keccak256, SigningKey, getBytes } = require('ethers');
 const prompts = require('prompts');
 const abi = require('./attestation-station-abi.json');
 
@@ -10,37 +10,6 @@ class AttestationStation {
     this.provider = new AlchemyProvider('optimism-goerli', 'SBWx0Z_XHGldPWGUkjSB4Cm0-Vh0N4y_');
     this.contract = new Contract(contractAddress, abi, this.provider);
   }
-  
-  /**
-  async attest(attestations) {
-    const signer = await this.getMetamaskSigner();
-    const tx = await this.contract.attest(attestations);
-    const signedTx = await signer.sendTransaction(tx);
-    await signedTx.wait();
-    console.log(`Attestations submitted! Tx hash: ${signedTx.hash}`);
-  }
- */
-  
-  // async attest(attestations) {
-  //   const signer = await this.getSigner();
-  //   const signedAttestations = await Promise.all(attestations.map(async attestation => {
-  //     const { about, key, val } = attestation;
-  //     // const nonce = await this.getNonce(signer.address);
-  //     const encodedKey = encodeRawKey(key);
-  //     const attestationHash = ethers.utils.keccak256(
-  //       ethers.utils.defaultAbiCoder.encode(
-  //         ["address", "bytes32", "bool"],
-  //         [about, encodedKey, val === 1]
-  //       )
-  //     );
-  //     const signature = await signer.signMessage(ethers.utils.arrayify(attestationHash));
-  //     console.log('\nSIGNATURE\n',signature, '\n--------------\n')
-  //     return { about, key, val, signature };
-  //   }));
-  //   const tx = await this.contract.attest(signedAttestations);
-  //   const rcpt = await tx.wait();
-  //   return rcpt;
-  // }
   
   async attest(address, data, signature, signer) {
     const hash = this.getAttestationHash(address, data);
@@ -73,7 +42,9 @@ class AttestationStation {
       name: "value",
       message: prompt
     });
-    return input.value;
+    // console.log(input)
+    // console.log(input.value)
+    return getBytes(input.value.toString());
   }
   
   // async getNonce(address) {
