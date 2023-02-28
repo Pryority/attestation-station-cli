@@ -1,9 +1,11 @@
 const readline = require('readline');
 const ethers = require('ethers');
 const AttestationStation = require('./AttestationStation.js');
-const { AlchemyProvider, keccak256, toUtf8Bytes, solidityPackedKeccak256, toBeArray, encodeBytes32String, hexlify, toBeHex, toBigInt, getBytes } = require('ethers');
+const { AlchemyProvider, keccak256, toUtf8Bytes, solidityPackedKeccak256, toBeArray, encodeBytes32String, hexlify, toBeHex, toBigInt, getBytes, Contract } = require('ethers');
+const abi = require('./attestation-station-abi.json');
 
 const contractAddress = '0xee36eaad94d1cc1d0eccadb55c38bffb6be06c77';
+// const contractAddress = '0xbed744818e96aad8a51324291a6f6cb20a0c22be';
 const provider = new AlchemyProvider('optimism-goerli', 'SBWx0Z_XHGldPWGUkjSB4Cm0-Vh0N4y_');
 
 const rl = readline.createInterface({
@@ -28,7 +30,6 @@ rl.question("Enter '1' to create a new attestation, or '2' to read an existing o
 
         rl.question("Enter the value of the attestation (1 for true, 0 for false, default: 1): ", async function(val) {
           attestation.val = toBeHex(val || '1'); // Set default value if user just hits enter
-
           console.log("New attestation created:", attestation);
           const attestationStation = new AttestationStation('https://opt-goerli.g.alchemy.com/v2/SBWx0Z_XHGldPWGUkjSB4Cm0-Vh0N4y_', contractAddress);
           const msgHash = solidityPackedKeccak256(
@@ -46,15 +47,11 @@ rl.question("Enter '1' to create a new attestation, or '2' to read an existing o
             key: attestation.key, 
             val: attestation.val 
           };
-          // const a = { 
-          //   about: attestation.about, 
-          //   key: attestation.key, 
-          //   val: attestation.val 
-          // };
-          // const abiCoder = new AbiCoder();
-          // const data = abiCoder.encode(['string'], [JSON.stringify(a)]);
-          const receipt = await attestationStation.attest(attestation.about, data, sig, signer);
-          console.log(receipt)
+          const attestationContract = new Contract(contractAddress, abi, provider);
+          const tx = await attestationContract.attest(data.about, data.key, data.val, sig);
+          console.log('Transaction sent:', tx.hash);
+          const receipt = await tx.wait();
+          console.log('Transaction confirmed in block', receipt.blockNumber);
           process.exit(0);
         });
       });
@@ -64,7 +61,7 @@ rl.question("Enter '1' to create a new attestation, or '2' to read an existing o
       rl.question("Enter the address that was attested about: ", function(attestedAddr) {
         rl.question("Enter the key of the attestation: ", function(rawKey) {
           const attendedKey = encodeRawKey(rawKey);
-          const attestationContract = new ethers.Contract(wroteAddr, abi, provider);
+          const attestationContract = new Contract(wroteAddr, abi, provider);
           attestationContract.get(attestation.about, attendedKey).then(function(result) {
             console.log("The attestation value is:", result.toString());
             process.exit(0);

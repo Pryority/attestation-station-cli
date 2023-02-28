@@ -11,16 +11,14 @@ class AttestationStation {
     this.contract = new Contract(contractAddress, abi, this.provider);
   }
   
-  async attest(address, data, signature, signer) {
-    const hash = this.getAttestationHash(address, data);
-    const recoveredAddress = this.recoverAddressFromSignature(hash, signature);
-    if (address.toLowerCase() !== recoveredAddress.toLowerCase()) {
-      throw new Error('Invalid signature');
+  async attest(attestations) {
+    if (!attestations || attestations.length === 0) {
+      return Promise.resolve([]);
     }
-    const tx = await this.contract.attest(address, data, signer, signature);
+    const tx = await this.contract.connect(this.signer).attest(attestations);
     const receipt = await tx.wait();
     return receipt;
-  }
+  }  
 
   async recoverAddressFromSignature(message, signature) {
     // const msgHash = toBeArray(message);
@@ -57,7 +55,7 @@ class AttestationStation {
       process.exit(1);
     }
     
-    console.log('\nPRIVATE KEY INPUT VALUE',inputString.slice(2),'\n')
+    console.log('PRIVATE KEY INPUT VALUE', inputString.slice(2))
     
     const privateKeyBytes = Buffer.from(inputString.slice(2), 'hex');
     return privateKeyBytes;
