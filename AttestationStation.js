@@ -1,4 +1,4 @@
-const { ethers, AlchemyProvider, Wallet, Contract, AbiCoder, keccak256, SigningKey, getBytes } = require('ethers');
+const { ethers, AlchemyProvider, Wallet, Contract, AbiCoder, keccak256, SigningKey, getBytes, toUtf8Bytes, toBeHex, hexlify } = require('ethers');
 const prompts = require('prompts');
 const abi = require('./attestation-station-abi.json');
 
@@ -33,19 +33,31 @@ class AttestationStation {
 
   async getSigner() {
     const privateKey = await this.getInput("Enter your private key: ", "text");
-    return new Wallet(privateKey, this.provider);
+    console.log('PRIVATE KEY AS BUFFER', privateKey);
+    const signer = new Wallet(privateKey, this.provider);
+    console.log('SIGNER ADDRESS', signer.address);
+    return signer;
   }
-  
-  async getInput(prompt, inputType = "number") {
+  async getInput(prompt, inputType = "text") {
     const input = await prompts({
       type: inputType,
       name: "value",
       message: prompt
     });
-    // console.log(input)
-    // console.log(input.value)
-    return getBytes(input.value.toString());
+    
+    const inputString = input.value;
+    
+    if (!inputString) {
+      console.error("Must provide a PRIVATE KEY to sign and write the attestation.");
+      process.exit(1);
+    }
+    
+    console.log('\nPRIVATE KEY INPUT VALUE',inputString,'\n')
+    
+    const privateKeyBytes = Buffer.from(inputString, 'hex');
+    return privateKeyBytes;
   }
+  
   
   // async getNonce(address) {
   //   return await this.contract.getNonce(address);
