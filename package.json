@@ -1,12 +1,13 @@
 {
   "name": "attestation-station-cli",
+  "description": "CLI for reading and writing attestations on the Optimism Goerli network using the deployed Attestation Station smart contract",
   "author": "Matthew Pryor <matthewapryor@gmail.com>",
   "version": "1.0.0",
-  "main": "bin/index.js",
+  "main": "index.js",
   "private": true,
   "license": "MIT",
   "bin": {
-    "opas": "./bin/index.js"
+    "attestation-station": "./index.js"
   },
   "keywords": [
     "Ethereum",
@@ -15,8 +16,11 @@
     "CLI"
   ],
   "dependencies": {
+    "commander": "^10.0.0",
     "dotenv": "^16.0.3",
-    "ethers": "^6.0.8",
+    "enquirer": "^2.3.6",
+    "ethers": "^5.5",
+    "prompts": "^2.4.2",
     "yargs": "^17.7.1"
   }
 }
