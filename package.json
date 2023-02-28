@@ -6,8 +6,12 @@
   "main": "index.js",
   "private": true,
   "license": "MIT",
+  "scripts": {
+    "start": "ts-node index.ts",
+    "format": "prettier --write \"./**/*.{ts,tsx,json,css,scss,md}\""
+  },
   "bin": {
-    "attestation-station": "./index.js"
+    "attestation-station": "./index.ts"
   },
   "keywords": [
     "Ethereum",
@@ -22,5 +26,12 @@
     "ethers": "^6.0.8",
     "prompts": "^2.4.2",
     "yargs": "^17.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.14.2",
+    "@types/prompts": "^2.4.2",
+    "eslint-config-prettier": "^8.6.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "prettier": "^2.8.4"
   }
 }
